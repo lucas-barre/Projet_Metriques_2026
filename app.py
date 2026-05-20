@@ -13,6 +13,14 @@ def hello_world():
 def MaPremiereAPI():
     return "<h2>Ma page de contact</h2>"  
 
+@app.route("/rapport")
+def mongraphique():
+    return render_template("graphique.html")
+
+@app.route("/histogramme")
+def histogramme():
+    return render_template("histogramme.html")
+
 @app.get("/paris")
 def api_paris():
     
@@ -30,7 +38,7 @@ def api_paris():
     ]
 
     return jsonify(result)
-    
+
 # Ne rien mettre après ce commentaire
     
 if __name__ == "__main__":

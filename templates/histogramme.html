@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Prévisions Météo Paris — Google ColumnChart</title>
+
+  <script src="https://www.gstatic.com/charts/loader.js"></script>
+
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 24px; }
+    #chart { width: 100%; height: 520px; }
+    #status { margin-top: 12px; white-space: pre-wrap; }
+  </style>
+</head>
+
+<body>
+  <h1>Prévisions météo à 7 jours — Paris</h1>
+  <div id="chart"></div>
+  <div id="status"></div>
+
+  <script>
+    google.charts.load('current', { packages: ['corechart'] });
+    google.charts.setOnLoadCallback(init);
+
+    let cachedRows = null;
+
+    async function init() {
+      try {
+        const rows = await fetchParis();
+        cachedRows = rows;
+        drawChart(rows);
+
+        window.addEventListener('resize', () => {
+          if (cachedRows) drawChart(cachedRows);
+        });
+      } catch (err) {
+        showStatus("Erreur: " + (err?.message || err));
+        console.error(err);
+      }
+    }
+
+    async function fetchParis() {
+      // On interroge la nouvelle API des prévisions
+      const res = await fetch('/paris', { headers: { 'Accept': 'application/json' } });
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status} sur /paris`);
+      }
+
+      const json = await res.json();
+
+      // Format JSON attendu : [{ jour: "Lundi", temperature_c: 18 }, ...]
+      // On convertit directement en lignes : [Chaîne de caractères, Nombre]
+      const rows = json.map(p => {
+        return [p.jour, Number(p.temperature_c)];
+      });
+
+      return rows;
+    }
+
+    function drawChart(rows) {
+      const data = new google.visualization.DataTable();
+      
+      // Configuration des deux axes : les Jours (en texte) et la Température (en nombre)
+      data.addColumn('string', 'Jour');
+      data.addColumn('number', 'Température (°C)');
+      data.addRows(rows);
+
+      const options = {
+        title: 'Prévisions des températures pour les 7 prochains jours',
+        legend: { position: 'none' },
+        hAxis: {
+          title: 'Jour'
+        },
+        vAxis: {
+          title: 'Température (°C)',
+          minValue: 0 // Permet de caler l'axe à 0 pour une meilleure lecture des barres
+        },
+        // Petite animation sympathique à l'affichage du graphique
+        animation: {
+          duration: 1000,
+          easing: 'out',
+          startup: true
+        }
+      };
+
+      // Remplacement de l'ancien Histogram par un ColumnChart (graphique à barres/colonnes verticales)
+      const chart = new google.visualization.ColumnChart(document.getElementById('chart'));
+      chart.draw(data, options);
+
+      showStatus(`Les données sont bien créées`);
+    }
+
+    function showStatus(msg) {
+      document.getElementById('status').textContent = msg;
+    }
+  </script>
+</body>
+</html>
