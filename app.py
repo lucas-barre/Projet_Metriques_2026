@@ -10,15 +10,15 @@ def hello_world():
 # Déposez votre code à partir d'ici :
 
 @app.route("/contact")
-def MaPremiereAPI():
-    return "<h2>Ma page de contact</h2>"  
+def displayContact():
+    return render_template("contact.html")
 
 @app.route("/rapport")
-def mongraphique():
+def displayReport():
     return render_template("graphique.html")
 
 @app.route("/histogramme")
-def histogramme():
+def displayHistogram():
     return render_template("histogramme.html")
 
 @app.get("/paris")
