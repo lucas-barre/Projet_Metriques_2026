@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Atelier Météo — Jauge Vent Marseille</title>
+
+  <!-- Chargement de la bibliothèque Google Charts -->
+  <script src="https://www.gstatic.com/charts/loader.js"></script>
+
+  <style>
+    body { 
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; 
+      margin: 0; 
+      padding: 40px 24px;
+      background-color: #0f172a; /* Fond sombre moderne */
+      color: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 8px;
+      background: linear-gradient(to right, #38bdf8, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-align: center;
+    }
+    p.subtitle {
+      color: #94a3b8;
+      margin-bottom: 40px;
+      text-align: center;
+    }
+    /* Conteneur centré pour la jauge */
+    #chart_wrap {
+      background: rgba(30, 41, 59, 0.7);
+      padding: 40px;
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 300px;
+      height: 300px;
+    }
+    #status { 
+      margin-top: 32px; 
+      font-size: 0.9rem;
+      color: #38bdf8; 
+      background: rgba(56, 189, 248, 0.1);
+      padding: 8px 16px;
+      border-radius: 20px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Indicateur de Vent — Marseille</h1>
+  <p class="subtitle">Données lues depuis Open Météo</p>
+
+  <div id="chart_wrap">
+    <div id="chart"></div>
+  </div>
+
+  <div id="status">Connexion au serveur local...</div>
+
+  <script>
+    // Étape 1 : Charger le package spécifique 'gauge' de Google Charts
+    google.charts.load('current', { packages: ['gauge'] });
+    google.charts.setOnLoadCallback(init);
+
+    async function init() {
+      try {
+        // Appelle la fonction locale pour récupérer la vitesse
+        const windSpeed = await fetchMarseilleWind();
+        drawGauge(windSpeed);
+      } catch (err) {
+        document.getElementById('status').style.color = '#ef4444';
+        document.getElementById('status').style.background = 'rgba(239, 68, 68, 0.1)';
+        showStatus("Erreur : " + err.message);
+      }
+    }
+
+    // Étape 2 : Appeler TA route FastAPI (/openmeteo)
+    async function fetchMarseilleWind() {
+      // On interroge ta route locale relative
+      const res = await fetch('/openmeteo', { headers: { 'Accept': 'application/json' } });
+      
+      if (!res.ok) throw new Error(`Erreur HTTP ${res.status} sur /openmeteo`);
+      
+      const data = await res.json();
+      
+      // Extraction de la clé "wind_speed" renvoyée par ton dictionnaire Python
+      return Number(data.wind_speed);
+    }
+
+    // Étape 3 : Configurer et afficher le graphique de type Jauge
+    function drawGauge(windSpeed) {
+      const data = google.visualization.arrayToDataTable([
+        ['Label', 'Value'],
+        ['Vent (km/h)', windSpeed]
+      ]);
+
+      const options = {
+        width: 260, 
+        height: 260,
+        // Paramètres de l'échelle (ex: de 0 à 100 km/h pour le vent)
+        min: 0,
+        max: 100,
+        // Zone Verte : Vent faible (0 à 25 km/h)
+        greenFrom: 0, greenTo: 25,
+        // Zone Jaune : Vent modéré / vigilance (25 à 55 km/h)
+        yellowFrom: 25, yellowTo: 55,
+        // Zone Rouge : Coup de vent / fort Mistral (55 à 100 km/h)
+        redFrom: 55, redTo: 100,
+        // Ajustements visuels mineurs pour le dynamisme des graduations
+        minorTicks: 5
+      };
+
+      // Instanciation du nouveau type de graphique : Gauge
+      const chart = new google.visualization.Gauge(document.getElementById('chart'));
+      chart.draw(data, options);
+
+      showStatus(`Mise à jour effectuée : ${windSpeed} km/h mesurés.`);
+    }
+
+    function showStatus(msg) {
+      document.getElementById('status').textContent = msg;
+    }
+  </script>
+</body>
+</html>

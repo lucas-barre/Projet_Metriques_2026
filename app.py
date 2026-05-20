@@ -21,6 +21,10 @@ def displayReport():
 def displayHistogram():
     return render_template("histogramme.html")
 
+@app.route("/atelier")
+def displayWork():
+    return render_template("atelier.html")
+
 @app.get("/paris")
 def api_paris():
     
@@ -38,6 +42,26 @@ def api_paris():
     ]
 
     return jsonify(result)
+
+@app.route("/openmeteo", methods=["GET"])
+def api_meteo():
+    # Données Marseille (Vitesse du vent à 10m)
+    url = "https://api.open-meteo.com/v1/forecast?latitude=43.2965&longitude=5.3698&current=wind_speed_10m"
+
+    try:
+        response = requests.get(url)
+        response.raise_for_status() 
+    except requests.RequestException as e:
+        # En Flask, on renvoie un tuple (contenu, code_erreur)
+        return jsonify({"error": f"Erreur Open-Meteo: {e}"}), 502
+
+    data = response.json()
+    
+    # Extraction de la vitesse du vent
+    speed = data["current"]["wind_speed_10m"]
+    
+    # jsonify convertit le dictionnaire en vrai JSON pour ton JavaScript
+    return jsonify({"wind_speed": speed})
 
 # Ne rien mettre après ce commentaire
     
